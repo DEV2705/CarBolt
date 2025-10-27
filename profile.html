@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Profile</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <style>
+    :root {
+      --profile-bg: var(--container-color);
+      --box-shadow:var(--box-shadoww);
+    }
+
+    body {
+      font-family: 'Exo', sans-serif;
+      background-color: var(--profile-bg);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .profile-container {
+      max-width: 500px;
+      width: 90%;
+      margin: 2rem auto;
+      background-color: var(--profile-bg);
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 6px 16px var(--box-shadow);
+      animation: profilePulse 3s infinite ease-in-out;
+    }
+    @keyframes profilePulse {
+      0% { box-shadow: 0 4px 10px var(--box-shadow) }
+      50% { box-shadow: 0 8px 20px var(--box-shadow) }
+      100% { box-shadow: 0 4px 10px var(--box-shadow) }
+    }
+    .profile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .profile-title {
+      font-size: 1.8rem;
+      font-weight: bold;
+      text-align: center;
+      margin: 0;
+      flex-grow: 1;
+      color: var(--text-color);
+    }
+    .back-btn {
+      background: #007bff;
+      border-radius: 5px;
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 3rem;
+      height: 1.8rem;
+      margin-bottom: .5rem;
+    }
+    .back-btn:hover {
+        background-color: #4392e6;
+    }
+    .profile-info p {
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .btn-logout {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      font-weight: bold;
+      padding: 0.75rem;
+      border-radius: 4px;
+      justify-self: start;
+      width: 5.5rem;
+      font-size: .9rem;
+      margin-top: 1rem;
+    }
+    .btn-logout:hover {
+      background-color: #4392e6;
+    }
+    @media (max-width: 576px) {
+      .profile-container {
+        padding: 1.5rem;
+      }
+      .profile-title {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="shape shape__big"></div>
+    <div class="profile-container">
+      <!-- Header with Back Button and Centered Title -->
+      <div class="profile-header">
+        <button id="backBtn" class="back-btn">&larr; </button>
+        <h2 class="profile-title">User Profile</h2>
+        <!-- Placeholder to balance the left button -->
+        <div style="width: 60px;"></div>
+      </div>
+      
+      <div class="profile-info">
+        <p><strong>Name:</strong> <span id="userName">Loading...</span></p>
+        <p><strong>Email:</strong> <span id="userEmail">Loading...</span></p>
+        <p><strong>Password:</strong> <span id="userPassword">Loading...</span></p>
+      </div>
+      <div class="d-grid">
+        <button id="logoutBtn" class="btn btn-logout">Log Out</button>
+      </div>
+    </div>
+    <div class="shape shape__big"></div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Firebase and Custom JS -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAYMj_8TzGuq0GkWXcuOPWfjUHeebtscGg",
+      authDomain: "carbolt.firebaseapp.com",
+      databaseURL: "https://carbolt-default-rtdb.firebaseio.com",
+      projectId: "carbolt",
+      storageBucket: "carbolt.firebasestorage.app",
+      messagingSenderId: "807674053255",
+      appId: "1:807674053255:web:13a23877ba013fdd2dae22"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check for a logged-in user
+      const loggedInUser = localStorage.getItem("loggedInUser");
+      if (!loggedInUser) {
+        alert("No user is logged in. Redirecting to login page.");
+        window.location.href = "login.html";
+        return;
+      }
+
+      // Parse stored data and sanitize email for DB lookup
+      const userData = JSON.parse(loggedInUser);
+      const sanitizedEmail = userData.email.replace(/\./g, '_');
+
+      try {
+        // Fetch user data from Firebase
+        const userRef = ref(db, 'users/' + sanitizedEmail);
+        const snapshot = await get(userRef);
+        if (snapshot.exists()) {
+          const realUserData = snapshot.val();
+          document.getElementById("userName").textContent = realUserData.fullName || "N/A";
+          document.getElementById("userEmail").textContent = realUserData.email || "N/A";
+          document.getElementById("userPassword").textContent = realUserData.password || "N/A";
+        } else {
+          alert("User data not found in the database.");
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        alert("An error occurred while fetching user data.");
+      }
+    });
+
+    // Logout functionality
+    const logoutBtn = document.getElementById('logoutBtn');
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem("loggedInUser");
+      window.location.href = "index.html";
+    });
+
+    // Back button functionality
+    const backBtn = document.getElementById('backBtn');
+    backBtn.addEventListener('click', () => {
+      window.history.back(); // or redirect to a specific page if needed
+    });
+  </script>
+  <script src="assets/js/darkmode.js"></script>
+</body>
+</html>
